@@ -29,6 +29,8 @@ Those are regenerated locally when needed.
 - PyTorch backend works locally for the normalized text mirror
 - AutoDeploy also runs locally for text-only probes, but the tested settings
   here used `compile_backend=torch-simple` and `attn_backend=torch`
+- AutoDeploy long-context measurements were added for `torch`, `flashinfer`,
+  and `trtllm` attention backends under `compile_backend=torch-simple`
 
 ## Environment
 
@@ -59,6 +61,8 @@ Override these host-side settings with env vars when needed:
 - `scripts/run_qwen35_autodeploy_trtllm_probe.sh`
 - `scripts/qwen35_autodeploy_trtllm_latency.py`
 - `scripts/run_qwen35_autodeploy_trtllm_latency.sh`
+- `scripts/qwen35_autodeploy_trtllm_longctx_perf.py`
+- `scripts/run_qwen35_autodeploy_trtllm_longctx_perf.sh`
 - `QWEN35_RTX6000_SETUP.md`
 - `QWEN35_SOURCE_FIXES.md`
 - `QWEN35_PYTORCH_BACKEND_LONGCTX_RESULTS.md`

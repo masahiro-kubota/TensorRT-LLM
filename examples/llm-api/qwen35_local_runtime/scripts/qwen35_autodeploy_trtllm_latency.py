@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import statistics
 import time
 from pathlib import Path
@@ -14,6 +15,9 @@ from tensorrt_llm.sampling_params import SamplingParams
 MODEL_DIR = Path("/workspace/runtime/artifacts/Qwen3.5-0.8B-text-clean")
 PROMPT = {"prompt": "Say hello in 5 words."}
 SAMPLING = SamplingParams(max_tokens=8, top_k=1, top_p=1.0, temperature=1.0)
+COMPILE_BACKEND = os.environ.get("QWEN35_COMPILE_BACKEND", "torch-simple")
+ATTN_BACKEND = os.environ.get("QWEN35_ATTN_BACKEND", "torch")
+WARM_RUNS = int(os.environ.get("QWEN35_WARM_RUNS", "5"))
 
 
 def run_once(llm: LLM) -> dict:
@@ -37,8 +41,8 @@ def main() -> int:
         "max_tokens": 8,
         "world_size": 1,
         "runtime": "trtllm",
-        "compile_backend": "torch-simple",
-        "attn_backend": "torch",
+        "compile_backend": COMPILE_BACKEND,
+        "attn_backend": ATTN_BACKEND,
         "dtype": "bfloat16",
     }
 
@@ -53,15 +57,15 @@ def main() -> int:
         max_batch_size=1,
         max_seq_len=64,
         max_num_tokens=16,
-        compile_backend="torch-simple",
-        attn_backend="torch",
+        compile_backend=COMPILE_BACKEND,
+        attn_backend=ATTN_BACKEND,
         model_kwargs={"torch_dtype": "bfloat16"},
     )
     payload["init_s"] = time.perf_counter() - init_started
 
     try:
         warmup = run_once(llm)
-        runs = [run_once(llm) for _ in range(5)]
+        runs = [run_once(llm) for _ in range(WARM_RUNS)]
     finally:
         llm.shutdown()
 

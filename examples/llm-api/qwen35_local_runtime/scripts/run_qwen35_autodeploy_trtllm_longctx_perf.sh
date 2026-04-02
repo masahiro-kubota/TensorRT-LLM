@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_DIR="$(cd "${ROOT_DIR}/../../.." && pwd)"
 IMAGE="${TRTLLM_QWEN35_RUNTIME_IMAGE:-local/trtllm-qwen35-main-runtime:25.06}"
 SRC_MODEL_DIR="${QWEN35_HOST_MODEL_DIR:-/home/masa/minipamayo/shared_checkpoints/hf_models/Qwen3.5-0.8B}"
-SCRIPT_PATH="/workspace/runtime/scripts/qwen35_autodeploy_trtllm_latency.py"
+SCRIPT_PATH="/workspace/runtime/scripts/qwen35_autodeploy_trtllm_longctx_perf.py"
 
 docker run --rm --gpus all \
   --ipc=host \
@@ -14,7 +14,10 @@ docker run --rm --gpus all \
   -e TLLM_DISABLE_MPI=1 \
   -e QWEN35_COMPILE_BACKEND="${QWEN35_COMPILE_BACKEND:-torch-simple}" \
   -e QWEN35_ATTN_BACKEND="${QWEN35_ATTN_BACKEND:-torch}" \
-  -e QWEN35_WARM_RUNS="${QWEN35_WARM_RUNS:-5}" \
+  -e QWEN35_INPUT_TOKENS="${QWEN35_INPUT_TOKENS:-2048}" \
+  -e QWEN35_OUTPUT_TOKENS="${QWEN35_OUTPUT_TOKENS:-40}" \
+  -e QWEN35_RUNS="${QWEN35_RUNS:-3}" \
+  -e QWEN35_WARMUP_INPUT_TOKENS="${QWEN35_WARMUP_INPUT_TOKENS:-128}" \
   -e PYTHONPATH="/workspace/src:${PYTHONPATH:-}" \
   -e LD_LIBRARY_PATH="/workspace/src/tensorrt_llm/libs:${LD_LIBRARY_PATH:-}" \
   -e QWEN35_VLM_SRC_DIR="/workspace/models/Qwen3.5-0.8B" \
