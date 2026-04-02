@@ -145,6 +145,89 @@ dense Qwen3.5 の HF checkpoint が持つ MLP weight 名を、loader が期待�
 - 小さい bugfix としては良い
 - ただし `#12203` と近い
 
+## 批判的評価
+
+ここからは、**「手元で役に立ったか」ではなく、「maintainer にとってありがたい小PRか」**という観点で評価する。
+
+### PR 候補 1: config 認識 fallback fix
+
+評価: **低め**
+
+理由:
+
+- `Qwen3.5-0.8B` の bring-up には効くが、速度改善や multimodal 実行に直接は効かない
+- `automodel.py` と `llm_args.py` という global entrypoint を触るため、diff の見た目より責任範囲が広い
+- 本質的には `Qwen3.5` config registry 周りの過渡的な互換 workaround に見えやすい
+- `#12203` や `#12611` の本流が進むほど、価値が相対的に下がりやすい
+
+判断:
+
+- **最初の upstream 実績を作るための小PR**としては悪くない
+- ただし、**maintainer が特に欲しがっている修正**とは言いにくい
+
+### PR 候補 2: dense multimodal routing fix
+
+評価: **中から高**
+
+理由:
+
+- `Qwen3.5-0.8B` の利用形に最も近い
+- `#12611` の review で、reviewer が dense model gap を明示的に指摘している
+- `modeling_qwen3vl.py` と unit test の narrow fix に落としやすい
+- `Qwen3.5` multimodal の active work の穴埋めとして説明しやすい
+
+判断:
+
+- **maintainer にとってありがたい小PR**に最も近い
+- ただし条件付きで、**`#12611` merge 後の follow-up**として出すのが筋がよい
+- `#12611` が open の間は競合しやすいので、今すぐ独立 PR にする価値は下がる
+
+### PR 候補 3: weight mapper 名寄せ fix
+
+評価: **低から中**
+
+理由:
+
+- 1 file bugfix に見せやすいので、形としては悪くない
+- ただし、その修正が `main` 上の public checkpoint で再現する failure に結び付かないと弱い
+- 現状の説明だと、手元の `Qwen3.5-0.8B` bring-up 向け compatibility patch に見えやすい
+- `#12203` が近いファイルを触っているため、別 PR の独立価値を出しにくい
+
+判断:
+
+- **public repro を最小で出せるなら** maintainer にとってありがたい小PRになる
+- そこまで落とせないなら、優先度は高くない
+
+## maintainer に喜ばれやすい小PRの型
+
+今回の `Qwen3.5` 周辺で見る限り、通りやすいのは次の型。
+
+- reviewer が open PR 上で既に指摘している gap を埋める
+- 1 から 2 files と test で閉じる
+- public checkpoint か synthetic config で再現できる
+- local container 事情や環境依存の glue を持ち込まない
+
+過去の前例もこの傾向に合っている。
+
+- `#5650`: dense を先に切り出して merge、MoE は別扱い
+- `#6344`: concrete な conversion failure の小さな bugfix
+- `#11877`: active line 上の narrow fix が短期間で merge
+
+## maintainer 観点での更新後の結論
+
+**「独立して出しやすいPR」**と **「maintainer に喜ばれやすいPR」** は一致しない。
+
+- 独立性だけで見ると、`PR 候補 1` はまだ出しやすい
+- maintainer 価値で見ると、`PR 候補 2` が最も筋がよい
+- `PR 候補 3` は public repro が作れるかどうかで価値が大きく変わる
+
+このため、**信頼を作るための最初の小PR**という観点では、現時点では次の順で考えるのがよい。
+
+1. `#12611` merge 後の dense multimodal routing + unittest
+2. `#12611` review で見えている mRoPE / test-memory 周りの narrow follow-up
+3. public repro を添えた weight mapper bugfix
+4. config fallback fix
+
 ## 今は避けるべき PR
 
 - `Qwen3.5-0.8B` VLA 全対応を 1 PR で出す
