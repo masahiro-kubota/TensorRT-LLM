@@ -60,6 +60,12 @@
 #include <limits>
 #include <unordered_set>
 
+#if ENABLE_MULTI_DEVICE && NCCL_VERSION_CODE >= NCCL_VERSION(2, 28, 0)
+#define TRTLLM_THOP_HAS_NCCL_WINDOW 1
+#else
+#define TRTLLM_THOP_HAS_NCCL_WINDOW 0
+#endif
+
 // using namespace nvinfer1;
 using tensorrt_llm::kernels::AllReduceFusionOp;
 using tensorrt_llm::kernels::AllReduceStrategyType;
@@ -293,7 +299,12 @@ public:
         case AllReduceStrategyType::UB: return runUBAllReduce(input, residual, norm_weight, scale, bias);
         case AllReduceStrategyType::NCCL: return runNCCLAllReduce(input, residual, norm_weight, scale, bias);
         case AllReduceStrategyType::NCCL_SYMMETRIC:
+#if TRTLLM_THOP_HAS_NCCL_WINDOW
             return runNCCLAllReduceSymmetric(input, residual, norm_weight, scale, bias);
+#else
+            TLLM_LOG_DEBUG("NCCL window buffers are unavailable at compile time; falling back to plain NCCL.");
+            return runNCCLAllReduce(input, residual, norm_weight, scale, bias);
+#endif
         case AllReduceStrategyType::MIN_LATENCY:
         case AllReduceStrategyType::ONESHOT:
         case AllReduceStrategyType::TWOSHOT:
@@ -440,6 +451,10 @@ private:
         torch::optional<torch::Tensor> const& residual, torch::optional<torch::Tensor> const& norm_weight,
         torch::optional<torch::Tensor> const& scale, torch::optional<torch::Tensor> const& bias)
     {
+#if !TRTLLM_THOP_HAS_NCCL_WINDOW
+        TLLM_LOG_DEBUG("NCCL window buffers are unavailable at compile time; using plain NCCL allreduce.");
+        return runNCCLAllReduce(input, residual, norm_weight, scale, bias);
+#else
         // Handle ProcessGroup path first - cannot extract NCCL comm for window registration
         // Use ProcessGroup's allreduce directly and return early
         if (mNcclComm.index() == 1)
@@ -569,6 +584,7 @@ private:
 
         // Treat any other patterns as fallback cases.
         return fallbackRunSubsequentOps(input, residual, norm_weight, scale, bias, outputTensor);
+#endif
     }
 
     std::vector<torch::Tensor> runLowPrecisionAllReduce(torch::Tensor const& input,
@@ -1471,6 +1487,13 @@ void preallocateNCCLWindowBuffer(
     torch::Tensor const& input, torch::List<int64_t> const& group, const int64_t buffersPerSize)
 {
 #if ENABLE_MULTI_DEVICE
+#if !TRTLLM_THOP_HAS_NCCL_WINDOW
+    (void) input;
+    (void) group;
+    (void) buffersPerSize;
+    TLLM_LOG_DEBUG("NCCL window buffers are unavailable at compile time; skipping preallocation.");
+    return;
+#else
     if (buffersPerSize <= 0 || group.size() == 0 || input.numel() == 0 || input.size(0) == 0)
     {
         return;
@@ -1530,7 +1553,9 @@ void preallocateNCCLWindowBuffer(
     {
         allocator.releaseBuffer(comm, ptr);
     }
+#endif
 #else
+    (void) input;
     (void) group;
     (void) buffersPerSize;
 #endif

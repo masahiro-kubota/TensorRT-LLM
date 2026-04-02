@@ -7,14 +7,12 @@ transforms:
   build_and_load_factory_model:
     stage: factory
     run_per_gm: false
-    expect_mem_change: true
   ############################################################################################
   # MOVE ARGUMENTS TO DEVICE
   ############################################################################################
   move_inputs_to_device:
     stage: weight_load
     run_per_gm: false
-    expect_mem_change: true
   ############################################################################################
   # SWITCH TO CACHED+FLATTENED ATTENTION + INITIALIZE CACHES
   ############################################################################################
@@ -28,11 +26,10 @@ transforms:
   initialize_cache:
     stage: cache_init
     run_per_gm: false
-    expect_mem_change: true
   resize_kv_cache:
     stage: cache_init
     run_per_gm: false
-    expect_mem_change: true
+    free_mem_ratio: 0.0
   ############################################################################################
   # COMPILE MODEL
   ############################################################################################

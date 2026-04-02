@@ -1887,6 +1887,11 @@ class AttentionRegistry:
     """A simple registry to look up different attention implementations."""
 
     _attention_registry: Dict[str, Type["AttentionDescriptor"]] = {}
+    _attention_aliases: Dict[str, str] = {
+        # Some configs still refer to the generic MLA source name, while the
+        # actual registered backends are concrete implementations.
+        "MultiHeadLatentAttention": "torch_mla",
+    }
 
     @classmethod
     def register(cls, kernel_source: str) -> Type["AttentionDescriptor"]:
@@ -1901,9 +1906,11 @@ class AttentionRegistry:
 
     @classmethod
     def get(cls, kernel_source: str) -> Type["AttentionDescriptor"]:
+        resolved = cls._attention_aliases.get(kernel_source, kernel_source)
         assert cls.has(kernel_source), f"Attention source {kernel_source} not registered."
-        return cls._attention_registry[kernel_source]
+        return cls._attention_registry[resolved]
 
     @classmethod
     def has(cls, kernel_source: str) -> bool:
-        return kernel_source in cls._attention_registry
+        resolved = cls._attention_aliases.get(kernel_source, kernel_source)
+        return resolved in cls._attention_registry

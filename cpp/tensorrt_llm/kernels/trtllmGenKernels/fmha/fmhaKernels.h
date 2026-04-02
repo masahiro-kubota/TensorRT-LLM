@@ -18,6 +18,7 @@
 
 #include "cuda_runtime_api.h"
 #include "tensorrt_llm/common/config.h"
+#include <cfloat>
 #include <memory>
 #include <mutex>
 #include <unordered_map>

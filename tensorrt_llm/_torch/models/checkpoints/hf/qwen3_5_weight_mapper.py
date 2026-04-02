@@ -46,6 +46,9 @@ class Qwen3_5MoeHfWeightMapper(Qwen3NextHfWeightMapper):
 
     _SPLIT_PROJ_PATTERN = re.compile(r"^(.*\.linear_attn)\.in_proj_(qkv|q|k|v|z|b|a)\.(.+)$")
     _SUPPORTED_SUFFIXES = {"weight", "bias", "weight_scale_inv"}
+    _DENSE_MLP_PATTERN = re.compile(
+        r"^(model\.layers\.\d+\.mlp)\.(gate_proj|up_proj|down_proj)\.(.+)$"
+    )
 
     def _normalize_weight_names(self, weights: dict) -> dict:
         normalized_weights = {}
@@ -55,6 +58,10 @@ class Qwen3_5MoeHfWeightMapper(Qwen3NextHfWeightMapper):
             if key.startswith("model.language_model."):
                 key = "model." + key[len("model.language_model.") :]
             normalized_weights[key] = tensor
+            dense_mlp_match = self._DENSE_MLP_PATTERN.match(key)
+            if dense_mlp_match is not None:
+                prefix, proj_name, suffix = dense_mlp_match.groups()
+                normalized_weights[f"{prefix}.mlp.{proj_name}.{suffix}"] = tensor
         return normalized_weights
 
     def handle_special_instance_module(

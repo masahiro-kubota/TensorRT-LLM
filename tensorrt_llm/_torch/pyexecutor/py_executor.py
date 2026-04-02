@@ -13,7 +13,6 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 import torch
 
 from tensorrt_llm.llmapi import DisaggScheduleStyle
-from tensorrt_llm.serve.responses_utils import get_steady_clock_now_in_seconds
 
 try:
     from cuda.bindings import runtime as cudart
@@ -68,6 +67,7 @@ from .scheduler import (RequestScheduler, ScheduledRequests,
                         SerializableSchedulerOutput, WaitingQueue,
                         create_waiting_queue)
 from .scheduler.adp_router import ADPRouter, DefaultADPRouter
+from .time_utils import get_steady_clock_now_in_seconds
 
 # Environment variable to specify iteration ranges for profiling start/stop.
 # Format: "start1-stop1,start2-stop2,..." or single iterations "iter1,iter2,..."

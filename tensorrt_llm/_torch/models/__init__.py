@@ -17,7 +17,11 @@ from .modeling_hyperclovax import HCXVisionForCausalLM
 from .modeling_llama import LlamaForCausalLM
 from .modeling_llava_next import LlavaNextModel
 from .modeling_minimaxm2 import MiniMaxM2ForCausalLM
-from .modeling_mistral import Mistral3VLM, MistralForCausalLM
+try:
+    from .modeling_mistral import Mistral3VLM, MistralForCausalLM
+except Exception:  # pragma: no cover - optional dependency path
+    Mistral3VLM = None
+    MistralForCausalLM = None
 from .modeling_mixtral import MixtralForCausalLM
 from .modeling_nemotron import NemotronForCausalLM
 from .modeling_nemotron_h import NemotronHForCausalLM
@@ -56,8 +60,6 @@ __all__ = [
     "HunYuanMoEV1ForCausalLM",
     "LlamaForCausalLM",
     "LlavaNextModel",
-    "Mistral3VLM",
-    "MistralForCausalLM",
     "MixtralForCausalLM",
     "NemotronH_Nano_VL_V2",
     "NemotronForCausalLM",
@@ -88,6 +90,9 @@ __all__ = [
     "MiniMaxM2ForCausalLM",
     "Cohere2ForCausalLM",
 ]
+
+if Mistral3VLM is not None and MistralForCausalLM is not None:
+    __all__.extend(["Mistral3VLM", "MistralForCausalLM"])
 
 if transformers.__version__ >= "4.45.1":
     from .modeling_mllama import MllamaForConditionalGeneration  # noqa

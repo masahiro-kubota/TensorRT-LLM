@@ -59,6 +59,7 @@ from ..models.automodel import AutoConfig
 from ..models.modeling_utils import (PretrainedConfig, QuantAlgo, QuantConfig,
                                      SpeculativeDecodingMode)
 from ..sampling_params import BatchedLogitsProcessor
+from .._torch.pyexecutor.config_utils import load_pretrained_config
 from .build_cache import BuildCacheConfig
 from .tokenizer import TokenizerBase, tokenizer_factory
 from .utils import (StrictBaseModel, generate_api_docs_as_docstring,
@@ -3791,8 +3792,17 @@ def get_model_format(model_dir: str,
             PretrainedConfig.from_checkpoint(model_dir)
         else:
             model_format = _ModelFormatKind.HF
-            AutoConfig.from_hugging_face(model_dir,
-                                         trust_remote_code=trust_remote_code)
+            try:
+                AutoConfig.from_hugging_face(model_dir,
+                                             trust_remote_code=trust_remote_code)
+            except Exception:
+                model_type = config.get("model_type")
+                if model_type in ("qwen3_5", "qwen3_5_text", "qwen3_5_moe",
+                                  "qwen3_5_moe_text"):
+                    load_pretrained_config(model_dir,
+                                           trust_remote_code=trust_remote_code)
+                else:
+                    raise
     except Exception as e:
         raise ValueError(
             f"Inferred model format {model_format}, but failed to load config.json: {e}"

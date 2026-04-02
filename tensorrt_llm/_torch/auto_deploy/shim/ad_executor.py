@@ -47,7 +47,7 @@ from tensorrt_llm.llmapi.llm_args import (
 )
 from tensorrt_llm.llmapi.tokenizer import TokenizerBase
 
-from ...._utils import get_free_port, mpi_rank, mpi_world_size
+from ...._utils import get_free_port, mpi_broadcast, mpi_rank, mpi_world_size
 from ....mapping import Mapping
 from ...distributed import Distributed
 from ...pyexecutor.mamba_cache_manager import MambaHybridCacheManager
@@ -989,11 +989,16 @@ def create_autodeploy_executor(ad_config: LlmArgs, tokenizer: Optional[Tokenizer
     # Initialize Mapping from config
     dist_mapping = ad_config.init_mapping_from_config(rank, world_size)
 
-    dist = Distributed.get(dist_mapping)
     ad_logger.set_rank(rank)
-    torch.cuda.set_device(rank)
-    port = dist.broadcast(get_free_port())  # use MPI broadcast to pick a free port
+    if world_size > 1:
+        # TorchDist requires torch.distributed to already be initialized, so use
+        # the lower-level MPI broadcast here to agree on a port before creating
+        # the higher-level Distributed wrapper.
+        port = mpi_broadcast(get_free_port() if rank == 0 else None, root=0)
+    else:
+        port = get_free_port()
     initialize_or_skip(rank, world_size, port)
+    dist = Distributed.get(dist_mapping)
 
     ad_logger.info(f"{dist_mapping=}, {dist=}, {port=}")
 

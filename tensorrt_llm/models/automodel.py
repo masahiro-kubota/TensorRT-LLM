@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 from ..bindings.executor import DecodingMode
 from ..mapping import Mapping
+from .._torch.pyexecutor.config_utils import load_pretrained_config
 from . import MODEL_MAP
 from .modeling_utils import QuantConfig
 
@@ -10,15 +11,29 @@ from .modeling_utils import QuantConfig
 class AutoConfig:
 
     @staticmethod
+    def _load_hf_config(hf_model_or_dir, trust_remote_code=False):
+        import transformers
+
+        try:
+            return transformers.AutoConfig.from_pretrained(
+                hf_model_or_dir, trust_remote_code=trust_remote_code)
+        except Exception:
+            loaded = load_pretrained_config(hf_model_or_dir,
+                                            trust_remote_code=trust_remote_code)
+            if getattr(loaded, "model_type", None) in (
+                    "qwen3_5_text", "qwen3_5_moe_text"):
+                return loaded
+            raise
+
+    @staticmethod
     def from_hugging_face(hf_model_or_dir,
                           dtype: str = 'auto',
                           mapping: Optional[Mapping] = None,
                           quant_config: Optional[QuantConfig] = None,
                           **kwargs):
-        import transformers
         trust_remote_code = kwargs.get('trust_remote_code', False)
 
-        hf_config = transformers.AutoConfig.from_pretrained(
+        hf_config = AutoConfig._load_hf_config(
             hf_model_or_dir, trust_remote_code=trust_remote_code)
 
         if hasattr(hf_config,
@@ -55,15 +70,13 @@ class AutoModelForCausalLM:
     def get_trtllm_model_class(hf_model_or_dir: Union[str, Path],
                                trust_remote_code: bool = False,
                                decoding_mode: DecodingMode = None):
-        import transformers
-
         hf_model_or_dir = Path(hf_model_or_dir) if not isinstance(
             hf_model_or_dir, Path) else hf_model_or_dir
 
         assert (hf_model_or_dir / "config.json").exists(
         ), "Please provide a Hugging Face model as the input to the LLM API."
 
-        hf_config = transformers.AutoConfig.from_pretrained(
+        hf_config = AutoConfig._load_hf_config(
             hf_model_or_dir, trust_remote_code=trust_remote_code)
         if decoding_mode is not None:
             if decoding_mode.isMedusa():

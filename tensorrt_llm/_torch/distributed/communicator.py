@@ -1,5 +1,6 @@
 import math
 import pickle  # nosec B403
+import socket
 from abc import ABC, abstractmethod
 from enum import IntEnum
 from functools import lru_cache, wraps
@@ -801,10 +802,16 @@ class TorchDist(Distributed):
 
         if ray.is_initialized():
             node_ip = ray.util.get_node_ip_address()
+            gpu_index = [int(id) for id in ray.get_gpu_ids()]
         else:
-            raise RuntimeError("Ray is not initialized")
-
-        gpu_index = [int(id) for id in ray.get_gpu_ids()]
+            # AutoDeploy single-process / non-Ray flows can still rely on
+            # Torch distributed. Use the current host and CUDA device as the
+            # local rank descriptor instead of hard-failing on missing Ray.
+            try:
+                node_ip = socket.gethostbyname(socket.gethostname())
+            except OSError:
+                node_ip = "127.0.0.1"
+            gpu_index = [torch.cuda.current_device()]
 
         assert len(gpu_index) == 1
 

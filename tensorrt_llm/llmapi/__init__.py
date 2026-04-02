@@ -23,13 +23,16 @@ from .llm_utils import (BuildConfig, KvCacheRetentionConfig, QuantAlgo,
                         QuantConfig)
 from .mm_encoder import MultimodalEncoder
 from .mpi_session import MpiCommSession
-from .visual_gen import VisualGen, VisualGenParams
+
+try:
+    from .visual_gen import VisualGen, VisualGenParams
+except Exception:  # pragma: no cover - optional in older release containers
+    VisualGen = None
+    VisualGenParams = None
 
 __all__ = [
     'LLM',
     'AsyncLLM',
-    'VisualGen',
-    'VisualGenParams',
     'MultimodalEncoder',
     'CompletionOutput',
     'RequestOutput',
@@ -77,3 +80,6 @@ __all__ = [
     'DeepSeekSparseAttentionConfig',
     'SkipSoftmaxAttentionConfig',
 ]
+
+if VisualGen is not None:
+    __all__.extend(['VisualGen', 'VisualGenParams'])

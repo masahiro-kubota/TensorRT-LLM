@@ -104,17 +104,31 @@ _setup_vendored_triton_kernels()
 # ImportError: libc10.so: cannot open shared object file: No such file or directory
 import torch  # noqa
 
-import tensorrt_llm._torch.models as torch_models
-import tensorrt_llm.functional as functional
-import tensorrt_llm.math_utils as math_utils
-import tensorrt_llm.models as models
-import tensorrt_llm.quantization as quantization
-import tensorrt_llm.runtime as runtime
-import tensorrt_llm.tools as tools
+_OPTIONAL_IMPORT_ERROR = None
+try:
+    import tensorrt_llm._torch.models as torch_models
+    import tensorrt_llm.functional as functional
+    import tensorrt_llm.math_utils as math_utils
+    import tensorrt_llm.models as models
+    import tensorrt_llm.quantization as quantization
+    import tensorrt_llm.runtime as runtime
+    import tensorrt_llm.tools as tools
+except Exception as exc:  # pragma: no cover - probe-only compatibility path
+    _OPTIONAL_IMPORT_ERROR = exc
+    torch_models = None
+    functional = None
+    math_utils = None
+    models = None
+    quantization = None
+    runtime = None
+    tools = None
 
 from ._common import _init, default_net, default_trtnet, precision
 from ._mnnvl_utils import MnnvlMemory, MnnvlMoe, MoEAlltoallInfo
-from ._torch.visual_gen.config import VisualGenArgs
+try:
+    from ._torch.visual_gen.config import VisualGenArgs
+except Exception:  # pragma: no cover - probe-only compatibility path
+    VisualGenArgs = None
 from ._utils import (default_gpus_per_node, local_mpi_rank, local_mpi_size,
                      mpi_barrier, mpi_comm, mpi_rank, mpi_world_size,
                      set_mpi_comm, str_dtype_to_torch, str_dtype_to_trt,
@@ -122,8 +136,18 @@ from ._utils import (default_gpus_per_node, local_mpi_rank, local_mpi_size,
 from .builder import BuildConfig, Builder, BuilderConfig, build
 from .disaggregated_params import DisaggregatedParams
 from .functional import Tensor, constant
-from .llmapi import LLM, AsyncLLM, MultimodalEncoder, VisualGen, VisualGenParams
-from .llmapi.llm_args import LlmArgs, TorchLlmArgs, TrtLlmArgs
+try:
+    from .llmapi import LLM, AsyncLLM, MultimodalEncoder, VisualGen, VisualGenParams
+    from .llmapi.llm_args import LlmArgs, TorchLlmArgs, TrtLlmArgs
+except Exception:  # pragma: no cover - probe-only compatibility path
+    LLM = None
+    AsyncLLM = None
+    MultimodalEncoder = None
+    VisualGen = None
+    VisualGenParams = None
+    LlmArgs = None
+    TorchLlmArgs = None
+    TrtLlmArgs = None
 from .logger import logger
 from .mapping import Mapping
 from .models.automodel import AutoConfig, AutoModelForCausalLM
@@ -189,8 +213,18 @@ __all__ = [
     '__version__',
 ]
 
-_init()
+_INIT_ERROR = None
+try:
+    _init()
+except Exception as exc:  # pragma: no cover - probe-only compatibility path
+    _INIT_ERROR = exc
 
 print(f"[TensorRT-LLM] TensorRT LLM version: {__version__}")
+if _OPTIONAL_IMPORT_ERROR is not None:
+    print(
+        f"[TensorRT-LLM] Optional top-level imports skipped during probe: {_OPTIONAL_IMPORT_ERROR}"
+    )
+if _INIT_ERROR is not None:
+    print(f"[TensorRT-LLM] Deferred _init failure during probe: {_INIT_ERROR}")
 
 sys.stdout.flush()
