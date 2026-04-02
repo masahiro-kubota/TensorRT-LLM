@@ -59,6 +59,7 @@ Override these host-side settings with env vars when needed:
 - `scripts/run_qwen35_autodeploy_trtllm_probe.sh`
 - `scripts/qwen35_autodeploy_trtllm_latency.py`
 - `scripts/run_qwen35_autodeploy_trtllm_latency.sh`
+- `QWEN35_SOURCE_FIXES.md`
 - `QWEN35_PYTORCH_BACKEND_LONGCTX_RESULTS.md`
 
 ## Notes
